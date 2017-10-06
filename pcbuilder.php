@@ -37,43 +37,47 @@ require_once('component_shortcut.class.php');
 
 
 function get_components_list($product_id, $return = 'array'){
-	print_r($_POST['components']);
+	
 	  global $product;
 	  global $woocommerce;
 	  $ava = get_post_meta($product_id, 'components');
 	  $selected_data = array();
-		$total_price = 0;
+	  $total_price = $product->get_price();
+	  echo $total_price;
 	  foreach($ava[0]['available'] as $key => $components){
 			$y = array();
 			foreach($components as $component){
 				$com_data = get_component_by_ID($component);
-					if($ava[0]['buildin'][$key] == $com_data->component_id){	
-						$selected_price_id = $com_data->component_id;	
-					}
-					if($_POST['components']['selected'][$key] == $com_data->component_id){
-						  if($com_data->component_purchasing_price != 0){
-							$calc_price = 0; 
-						  } else {
-							$calc_price = $com_data->component_purchasing_price - get_component_price_by_ID($selected_price_id, 'component_retail_price');   
-						  }
-					} else {
-						  if($com_data->component_purchasing_price != 0){
-							$calc_price = $com_data->component_retail_price - get_component_price_by_ID($selected_price_id);   	
-						  } else {
-							$calc_price = $com_data->component_purchasing_price - get_component_price_by_ID($selected_price_id, 'component_retail_price');
-												
-						  }  
-					}
 					
-					$tax_rates    = WC_Tax::get_rates( $product->get_tax_class() );
-					$taxes        = WC_Tax::calc_tax($calc_price, $tax_rates, false );
-					$tax_amount   = WC_Tax::get_tax_total( $taxes );
-					$price 		  = round( $calc_price + $tax_amount, wc_get_price_decimals() ); 
-		
-		
 				if($ava[0]['buildin'][$key] == $com_data->component_id){	
 					$selected_price_id = $com_data->component_id;	
+				}
+			
+				if($_POST['components']['selected'][$key] == $com_data->component_id){
+					  if($com_data->component_purchasing_price != 0){
+						if($ava[0]['buildin'][$key] == $com_data->component_id){
+							$calc_price = 0; 
+						} else {
+							$calc_price = $com_data->component_retail_price - get_component_price_by_ID($selected_price_id);   	
+						}							
+						
+					  } else {
+						$calc_price = $com_data->component_purchasing_price - get_component_price_by_ID($selected_price_id, 'component_retail_price');   
+					  }
+				} else {
+					  if($com_data->component_purchasing_price != 0){
+						$calc_price = $com_data->component_retail_price - get_component_price_by_ID($selected_price_id);   	
+					  } else {
+						$calc_price = $com_data->component_purchasing_price - get_component_price_by_ID($selected_price_id, 'component_retail_price');					
+					  }  
+				}
 
+				$tax_rates    = WC_Tax::get_rates( $product->get_tax_class() );
+				$taxes        = WC_Tax::calc_tax($calc_price, $tax_rates, false );
+				$tax_amount   = WC_Tax::get_tax_total( $taxes );
+				$price 		  = round( $calc_price + $tax_amount, wc_get_price_decimals() ); 
+
+				if($ava[0]['buildin'][$key] == $com_data->component_id){	
 					array_push($y, array(
 						'id' => $com_data->component_id,
 						'component_name' => $com_data->component_name,
@@ -94,6 +98,7 @@ function get_components_list($product_id, $return = 'array'){
 							)
 						)
 					));
+
 				} else {
 					
 					array_push($y, array(
@@ -116,25 +121,32 @@ function get_components_list($product_id, $return = 'array'){
 							)
 						)
 					));
-					$total_price += $price;
-				}		
+					
+					if(($_POST['components']['selected'][$key] == $com_data->component_id)||($ava[0]['buildin'][$key] == $com_data->component_id)){
+						$total_price += $price;	
+					}
 
+				
+				}		
 
 			}
 			
+			$total_price_clear = $total_price;
 			$tax_rates    = WC_Tax::get_rates( $product->get_tax_class() );
 			$taxes        = WC_Tax::calc_tax($total_price, $tax_rates, false );
 			$tax_amount   = WC_Tax::get_tax_total( $taxes );
-			$total_price 		  = round( $total_price + $tax_amount, wc_get_price_decimals() ); 
-					
+			$total_price_re  = round( $total_price + $tax_amount, wc_get_price_decimals() ); 
+			
 			array_push($selected_data, array(
 				'cat' => $key,
 				'selected_price_id' => $selected_price_id,
 				'cat_data' => get_term($key),
 				'data' => $y,
 				'total_price' =>  array(
-					'formated' =>wc_price($total_price),
+					'formated' =>wc_price($total_price_re),
 					'natural' => $total_price,
+					'taxless' => $total_price_clear,
+					'taxrate' => round($tax_rates[1]['rate'],0).'% '.$tax_rates[1]['label'] ,
 					'tax' => array(
 						'formated' => wc_price($taxes[1]),
 						'natural' => $taxes[1]
