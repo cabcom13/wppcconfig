@@ -124,11 +124,8 @@ function get_components_list($product_id, $return = 'array'){
 					
 					if(($_POST['components']['selected'][$key] == $com_data->component_id)||($ava[0]['buildin'][$key] == $com_data->component_id)){
 						$total_price += $price;	
-					}
-
-				
+					}	
 				}		
-
 			}
 			
 			$total_price_clear = $total_price;
