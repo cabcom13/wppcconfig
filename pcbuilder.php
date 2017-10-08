@@ -35,25 +35,63 @@ require_once('component_manager.class.php');
 // INCLUDE COMPONENT SHORTCUT LIST TABLE CLASS
 require_once('component_shortcut.class.php');
 
+add_action('plugins_loaded', 'wpse_setup_theme');
 
-function get_components_list($product_id, $return = 'array'){
+function wpse_setup_theme(){
 	
-	  global $product;
+	add_action( 'wp_ajax_nopriv_change_pc_configuration', 'change_pc_configuration' );
+	add_action( 'wp_ajax_change_pc_configuration', 'change_pc_configuration' );
+	add_action( 'wp_enqueue_scripts', 'ajax_pc_config_frontend' );
+	
+}
+
+function ajax_pc_config_frontend() {
+
+	wp_enqueue_script( 'pc_config', plugins_url( '/js/configurator.js', __FILE__ ), array('jquery'), '1.0', true );
+
+	wp_localize_script( 'pc_config', 'pc_config', array(
+		'ajax_url' => admin_url( 'admin-ajax.php' )
+	));
+
+}
+
+function change_pc_configuration(){
+	if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) { 
+		$params = array();
+		parse_str($_POST['data'], $params);
+		get_components_list($params['product_id'], 'json');
+
+
+	}
+}
+function get_components_list($product_id, $return = 'array'){
 	  global $woocommerce;
-	  $ava = get_post_meta($product_id, 'components');
+
+	  $product = wc_get_product($product_id );
+	  $ava = get_post_meta( $product_id, 'components');
 	  $selected_data = array();
 	  $total_price = $product->get_price();
-	  echo $total_price;
+	  $return_ar = array();
+
+		if(is_array($_POST['data'])){
+			$post_data  = $_POST['components'];
+		} else {
+			parse_str($_POST['data'], $params);
+			$post_data  =  $params['components'];
+		}
+
 	  foreach($ava[0]['available'] as $key => $components){
 			$y = array();
+			$selected_image = '';
 			foreach($components as $component){
+				
 				$com_data = get_component_by_ID($component);
 					
 				if($ava[0]['buildin'][$key] == $com_data->component_id){	
 					$selected_price_id = $com_data->component_id;	
 				}
 			
-				if($_POST['components']['selected'][$key] == $com_data->component_id){
+				if($post_data['selected'][$key] == $com_data->component_id){
 					  if($com_data->component_purchasing_price != 0){
 						if($ava[0]['buildin'][$key] == $com_data->component_id){
 							$calc_price = 0; 
@@ -77,39 +115,48 @@ function get_components_list($product_id, $return = 'array'){
 				$tax_amount   = WC_Tax::get_tax_total( $taxes );
 				$price 		  = round( $calc_price + $tax_amount, wc_get_price_decimals() ); 
 
-				if($ava[0]['buildin'][$key] == $com_data->component_id){	
-					array_push($y, array(
-						'id' => $com_data->component_id,
-						'component_name' => $com_data->component_name,
-						'component_image' => wp_get_attachment_image_src($com_data->component_image),
-						'component_descripion' => htmlspecialchars($com_data->component_descripion),
-						'component_status' => $com_data->component_status,
-						'component_out_of_stock' =>  $com_data->component_out_of_stock,
-						'is_build_in' => true,
-						'is_selected' =>  true,
-						'purchasing_price' =>  $com_data->component_purchasing_price,
-						'retail_price' => $com_data->component_retail_price,
-						'price' =>  array(
-							'formated' => wc_price( 0),
-							'natural' => 0,
-							'tax' => array(
-								'formated' => wc_price($taxes[1]),
-								'natural' => $taxes[1]
-							)
-						)
-					));
+				if(is_array($post_data['selected'])){
+						if($post_data['selected'][$key] == $com_data->component_id){
+							$_is_selected = true;
+						} else {
+							$_is_selected = false;
+						}
+				}	else {
+					if($ava[0]['buildin'][$key] == $com_data->component_id){
+						$_is_selected = true;
+						$_is_buildin = true;
+					} else {
+						$_is_selected = false;
+						$_is_buildin = false;
+					}
+				}
+				
 
-				} else {
-					
-					array_push($y, array(
+				if($_is_buildin){
+					$price = 0;
+					$selected_image = $_compo_image;
+					$selected_name = $com_data->component_name;
+				}
+				if($_is_selected){
+					$selected_name = $com_data->component_name;
+					if(!empty($com_data->component_image)){
+						$_compo_image = wp_get_attachment_image_src($com_data->component_image);
+					} else {
+						$_compo_image = array(plugins_url().'/pcbuilder/img/noimage.png', 150,150);
+					} 
+					$selected_image = $_compo_image;
+					$total_price += $price;	
+				}
+				
+				if($_is_buildin){
+					array_unshift($y, array(
 						'id' => $com_data->component_id,
 						'component_name' => $com_data->component_name,
-						'component_image' => wp_get_attachment_image_src($com_data->component_image),
-						'component_descripion' => htmlspecialchars($com_data->component_descripion),
+						'component_image' => $_compo_image,
 						'component_status' => $com_data->component_status,
 						'component_out_of_stock' =>  $com_data->component_out_of_stock,
-						'is_build_in' => false,
-						'is_selected' => $_POST['components']['selected'][$key] == $com_data->component_id ? true:false,
+						'is_build_in' => $_is_buildin,
+						'is_selected' => $_is_selected,
 						'purchasing_price' =>  $com_data->component_purchasing_price,
 						'retail_price' => $com_data->component_retail_price,
 						'price' =>  array(
@@ -121,40 +168,73 @@ function get_components_list($product_id, $return = 'array'){
 							)
 						)
 					));
-					
-					if(($_POST['components']['selected'][$key] == $com_data->component_id)||($ava[0]['buildin'][$key] == $com_data->component_id)){
-						$total_price += $price;	
-					}	
-				}		
+				} else {
+					array_push($y, array(
+						'id' => $com_data->component_id,
+						'component_name' => $com_data->component_name,
+						'component_image' => $_compo_image,
+						'component_status' => $com_data->component_status,
+						'component_out_of_stock' =>  $com_data->component_out_of_stock,
+						'is_build_in' => $_is_buildin,
+						'is_selected' => $_is_selected,
+						'purchasing_price' =>  $com_data->component_purchasing_price,
+						'retail_price' => $com_data->component_retail_price,
+						'price' =>  array(
+							'formated' => wc_price( $price),
+							'natural' => $price,
+							'tax' => array(
+								'formated' => wc_price($taxes[1]),
+								'natural' => $taxes[1]
+							)
+						)
+					));	
+				}
+				
+
+
 			}
 			
 			$total_price_clear = $total_price;
 			$tax_rates    = WC_Tax::get_rates( $product->get_tax_class() );
 			$taxes        = WC_Tax::calc_tax($total_price, $tax_rates, false );
 			$tax_amount   = WC_Tax::get_tax_total( $taxes );
-			$total_price_re  = round( $total_price + $tax_amount, wc_get_price_decimals() ); 
+			$total_price_re  = round( $total_price , wc_get_price_decimals() ); 
+			#echo $selected_image[0].'<br />';
+			
+		
 			
 			array_push($selected_data, array(
 				'cat' => $key,
 				'selected_price_id' => $selected_price_id,
+				'selected_image' => $selected_image,
+				'selected_component_name' => $selected_name,
 				'cat_data' => get_term($key),
 				'data' => $y,
-				'total_price' =>  array(
-					'formated' =>wc_price($total_price_re),
-					'natural' => $total_price,
-					'taxless' => $total_price_clear,
-					'taxrate' => round($tax_rates[1]['rate'],0).'% '.$tax_rates[1]['label'] ,
-					'tax' => array(
-						'formated' => wc_price($taxes[1]),
-						'natural' => $taxes[1]
-					)
-				)
+
 			)); 
 	  }
+
+	$return_ar = array(
+		'components' => $selected_data,
+		'total_price' =>  array(
+			'formated' =>wc_price($total_price_re),
+			'natural' => $total_price,
+			'taxless' => $total_price_clear,
+			'taxrate' => round($tax_rates[1]['rate'],0).'% '.$tax_rates[1]['label'] ,
+			'tax' => array(
+				'formated' => wc_price($taxes[1]),
+				'natural' => $taxes[1]
+			)
+		)
+	);
+	  
 	if($return == 'array'){
-		return $selected_data;
+		return $return_ar;
 	} else if($return == 'json'){
-		return json_encode($selected_data);
+		header('Content-Type: application/json');
+		#print_r($return_ar);
+		echo json_encode($return_ar);
+		exit;
 	}
 	
 }
@@ -176,7 +256,10 @@ function get_component_price_by_ID($component_id, $typ = 'component_purchasing_p
 		$query = "SELECT $typ FROM $database_name  $sql_stat";				
 	
 	return $wpdb->get_var($query);
-}
+}	
+
+
+
 
 
 
@@ -266,9 +349,7 @@ class PCBuilder {
 		add_action('admin_menu',  array( $this,'mt_add_pages'));
 		add_action('admin_footer', array( &$this,'ajax_script'));
 		add_action( 'parent_file', array( &$this,'prefix_highlight_taxonomy_parent_menu') );
-	
-		
-		
+
 		add_action( 'admin_enqueue_scripts', array( $this,'load_custom_wp_admin_style' ) );
 		add_action( 'admin_enqueue_scripts', array( $this,'my_enqueue') );
 		// frontend stuff
@@ -310,7 +391,13 @@ class PCBuilder {
 
 		
 	}
-		
+	
+
+	
+	
+
+
+	
 	function ajax_script(){
 		?>
 		<script type="text/javascript">

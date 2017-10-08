@@ -37,9 +37,11 @@ class My_List_Table extends WP_List_Table {
 		global $wpdb; //This is used only if making any database queries
 		$views = array();	
 		
-		$database_name = $wpdb->prefix.'components_categories' ;
-		$query = "SELECT * FROM $database_name ORDER BY component_categorie_sort ASC";
-		$datas =  $wpdb->get_results($query, ARRAY_A );
+		$categories_terms = get_terms( array(
+			'taxonomy' => 'component_categorie',
+			'hide_empty' => false,
+		) );
+	#print_r($categories_terms);
 		$current = ( !empty($_REQUEST['filter']) ? $_REQUEST['filter'] : 'all');
 
 
@@ -48,11 +50,11 @@ class My_List_Table extends WP_List_Table {
 		   $all_url = remove_query_arg('filter');
 		   $views['all'] = "<a href='{$all_url }' {$class} >Alle</a>";	
 		
-		foreach($datas as $data){
+		foreach($categories_terms as $data){
 		   //Foo link
-			$title =$data['components_categories_name'];
-			$id =$data['components_categories_id'];
-			$slug = sanitize_title( $title);
+			$title =$data->name;
+			$id = $data->term_id;
+			$slug =$data->slug;
 
 		   $foo_url = add_query_arg('filter',$id);
 		   $class = ($current == $id ? ' class="current"' :'');
@@ -121,7 +123,7 @@ class My_List_Table extends WP_List_Table {
 	  $customvar = ( isset($_REQUEST['filter']) ? $_REQUEST['filter'] : 'all');
 
 		if($customvar !== 'all'){
-			$sql_stat = ' WHERE components_categories_id = '.$customvar;
+			$sql_stat = ' WHERE component_categorie = '.$customvar;
 		}
 	
 		$database_name = $wpdb->prefix.'components' ;
