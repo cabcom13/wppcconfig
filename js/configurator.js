@@ -1,8 +1,8 @@
 jQuery( document ).ready( function() {
 
 	jQuery('#test input:radio').change(function () {
-			
-			
+			$_this_radio = jQuery(this);
+			console.log($_this_radio.data('categorie-id'));
 		
 				console.log('submit');
 				jQuery.ajax({
@@ -17,9 +17,14 @@ jQuery( document ).ready( function() {
 						
 					},
 					success: function(data) { 
+				
+					
 						jQuery('#components_overview').empty();
 						jQuery.each( data.components, function( key, value ) {
+							console.log(value);
 							jQuery.each( value.data, function( k, v ) {
+								
+								
 								// set Image
 								if(v.is_selected){
 									jQuery('<strong></strong>').text(value.cat_data.name).appendTo(jQuery('#components_overview'));
@@ -50,7 +55,7 @@ jQuery( document ).ready( function() {
 								//
 						});
 						jQuery('#_total_price').removeClass('loading_animation');
-						jQuery('#_total_price').html(data.total_price.formated +' incl. '+ data.total_price.taxrate);
+						jQuery('#_total_price').html(data.total_price.formated +' incl. '+ data.total_price.taxrate); 
 						
 					},
 					dataType: 'json',

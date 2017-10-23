@@ -97,16 +97,17 @@ function get_components_list($product_id, $return = 'array'){
 							$calc_price = 0; 
 						} else {
 							$calc_price = $com_data->component_retail_price - get_component_price_by_ID($selected_price_id);   	
-						}							
-						
+						}	
+							
 					  } else {
 						$calc_price = $com_data->component_purchasing_price - get_component_price_by_ID($selected_price_id, 'component_retail_price');   
 					  }
 				} else {
 					  if($com_data->component_purchasing_price != 0){
-						$calc_price = $com_data->component_retail_price - get_component_price_by_ID($selected_price_id);   	
+						$calc_price = $com_data->component_retail_price - get_component_price_by_ID($selected_price_id);    						
 					  } else {
 						$calc_price = $com_data->component_purchasing_price - get_component_price_by_ID($selected_price_id, 'component_retail_price');					
+						$calc_price = 0;
 					  }  
 				}
 
@@ -138,6 +139,9 @@ function get_components_list($product_id, $return = 'array'){
 					$selected_name = $com_data->component_name;
 				}
 				if($_is_selected){
+					if(get_component_price_by_ID($com_data->component_id) == 0){
+						$price = 0;
+					}
 					$selected_name = $com_data->component_name;
 					if(!empty($com_data->component_image)){
 						$_compo_image = wp_get_attachment_image_src($com_data->component_image);
@@ -145,33 +149,19 @@ function get_components_list($product_id, $return = 'array'){
 						$_compo_image = array(plugins_url().'/pcbuilder/img/noimage.png', 150,150);
 					} 
 					$selected_image = $_compo_image;
-					$total_price += $price;	
+					
+					$total_price += $price;		
+					
 				}
 				
 				if($_is_buildin){
+					
+					$subterm = get_term($com_data->component_categorie,'component_categorie');
+					if($subterm->parent == 0){
 					array_unshift($y, array(
 						'id' => $com_data->component_id,
 						'component_name' => $com_data->component_name,
-						'component_image' => $_compo_image,
-						'component_status' => $com_data->component_status,
-						'component_out_of_stock' =>  $com_data->component_out_of_stock,
-						'is_build_in' => $_is_buildin,
-						'is_selected' => $_is_selected,
-						'purchasing_price' =>  $com_data->component_purchasing_price,
-						'retail_price' => $com_data->component_retail_price,
-						'price' =>  array(
-							'formated' => wc_price( $price),
-							'natural' => $price,
-							'tax' => array(
-								'formated' => wc_price($taxes[1]),
-								'natural' => $taxes[1]
-							)
-						)
-					));
-				} else {
-					array_push($y, array(
-						'id' => $com_data->component_id,
-						'component_name' => $com_data->component_name,
+						'cat-id' => $com_data->component_categorie,
 						'component_image' => $_compo_image,
 						'component_status' => $com_data->component_status,
 						'component_out_of_stock' =>  $com_data->component_out_of_stock,
@@ -188,6 +178,78 @@ function get_components_list($product_id, $return = 'array'){
 							)
 						)
 					));	
+					} else {
+						array_push($y, array(
+							'id' => $com_data->component_id,
+							'component_name' => $com_data->component_name,
+							'cat-id' => $com_data->component_categorie,
+							'component_image' => $_compo_image,
+							'component_status' => $com_data->component_status,
+							'component_out_of_stock' =>  $com_data->component_out_of_stock,
+							'is_build_in' => $_is_buildin,
+							'is_selected' => $_is_selected,
+							'purchasing_price' =>  $com_data->component_purchasing_price,
+							'retail_price' => $com_data->component_retail_price,
+							'price' =>  array(
+								'formated' => wc_price( $price),
+								'natural' => $price,
+								'tax' => array(
+									'formated' => wc_price($taxes[1]),
+									'natural' => $taxes[1]
+								)
+							)
+						));	
+					}
+					
+
+				} else {
+					
+					$subterm = get_term($com_data->component_categorie,'component_categorie');
+					if($subterm->parent == 0){
+						array_unshift($y, array(
+							'id' => $com_data->component_id,
+							'component_name' => $com_data->component_name,
+							'cat-id' => $com_data->component_categorie,
+							'component_image' => $_compo_image,
+							'component_status' => $com_data->component_status,
+							'component_out_of_stock' =>  $com_data->component_out_of_stock,
+							'is_build_in' => $_is_buildin,
+							'is_selected' => $_is_selected,
+							'purchasing_price' =>  $com_data->component_purchasing_price,
+							'retail_price' => $com_data->component_retail_price,
+							'price' =>  array(
+								'formated' => wc_price( $price),
+								'natural' => $price,
+								'tax' => array(
+									'formated' => wc_price($taxes[1]),
+									'natural' => $taxes[1]
+								)
+							)
+						));		
+					} else {
+						array_push($y, array(
+							'id' => $com_data->component_id,
+							'component_name' => $com_data->component_name,
+							'cat-id' => $com_data->component_categorie,
+							'component_image' => $_compo_image,
+							'component_status' => $com_data->component_status,
+							'component_out_of_stock' =>  $com_data->component_out_of_stock,
+							'is_build_in' => $_is_buildin,
+							'is_selected' => $_is_selected,
+							'purchasing_price' =>  $com_data->component_purchasing_price,
+							'retail_price' => $com_data->component_retail_price,
+							'price' =>  array(
+								'formated' => wc_price( $price),
+								'natural' => $price,
+								'tax' => array(
+									'formated' => wc_price($taxes[1]),
+									'natural' => $taxes[1]
+								)
+							)
+						));		
+					}
+
+					
 				}
 				
 
@@ -201,8 +263,7 @@ function get_components_list($product_id, $return = 'array'){
 			$total_price_re  = round( $total_price , wc_get_price_decimals() ); 
 			#echo $selected_image[0].'<br />';
 			
-		
-			
+
 			array_push($selected_data, array(
 				'cat' => $key,
 				'selected_price_id' => $selected_price_id,
@@ -244,7 +305,7 @@ function get_component_by_ID($component_id){
 	global $wpdb;
 		$database_name = $wpdb->prefix.'components' ;
 		$sql_stat = 'WHERE component_id = '.$component_id;
-		$query = "SELECT * FROM $database_name  $sql_stat";				
+		$query = "SELECT * FROM $database_name $sql_stat";				
 	
 	return $wpdb->get_row($query , OBJECT);
 }
