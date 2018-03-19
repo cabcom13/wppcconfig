@@ -3,7 +3,6 @@ if( ! class_exists( 'WP_List_Table' ) ) {
 	require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
 }
 
-
 class components_product_shortcut_table extends WP_List_Table {
 
 	function __construct(){
@@ -188,7 +187,5 @@ class components_product_shortcut_table extends WP_List_Table {
 		  return print_r( $item, true ) ; //Show the whole array for troubleshooting purposes
 	  }
 	}	
-
 }
-
 ?>
